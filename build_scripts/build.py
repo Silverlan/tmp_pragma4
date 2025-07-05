@@ -301,6 +301,10 @@ if platform == "linux" and (c_compiler == "clang-20" or c_compiler == "clang++-2
 		cxx_compiler = clang_staging_path +"/bin/clang++"
 	print_msg("Setting c_compiler override to '" +c_compiler +"'")
 	print_msg("Setting cxx_compiler override to '" +cxx_compiler +"'")
+	os.chdir(curDir)
+
+	bin_dir = os.path.join(clang20_root, "bin")
+	subprocess.run(["chmod", "-R", "a+rx", bin_dir], check=True)
 
 if platform == "linux":
 	os.environ["CC"] = c_compiler
@@ -438,7 +442,7 @@ if platform == "linux":
 			# Ninja
 			"apt-get install ninja-build",
 
-			# libdecor (required for Wayland)
+			# Wayland
 			"apt-get install wayland-protocols",
 			"apt-get install libdbus-1-dev",
 			"apt-get install libgtk-3-dev"
