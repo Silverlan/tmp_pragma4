@@ -277,8 +277,8 @@ if build_all == False:
 # which is not available in package managers yet.
 if platform == "linux" and (c_compiler == "clang-20" or c_compiler == "clang++-20"):
 	clang_staging_path = get_library_root_dir("clang")
+	curDir = os.getcwd()
 	if build_all:
-		curDir = os.getcwd()
 		os.chdir(deps_dir)
 		clang20_root = os.getcwd() +"/LLVM-20.1.6-Linux-X64"
 		if not Path(clang20_root).is_dir():
