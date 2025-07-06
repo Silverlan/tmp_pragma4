@@ -490,6 +490,58 @@ def copy_prebuilt_headers(source_dir, lib_name, exclude_terms=None):
 	copy_files(["*.h", "*.hpp", "*.ipp"], source_dir, include_dir, exclude_terms)
 	return include_dir
 
+def sync_dirs(src: str, dst: str) -> None:
+    """
+    Sync contents of src/ into dst/, mimicking `rsync -a --links`.
+    """
+    src = src.rstrip(os.sep)
+    dst = dst.rstrip(os.sep)
+
+    # Ensure destination exists
+    os.makedirs(dst, exist_ok=True)
+
+    # Walk the source tree
+    for root, dirs, files in os.walk(src):
+        # Compute relative path & corresponding destination root
+        rel = os.path.relpath(root, src)
+        dest_root = os.path.join(dst, rel)
+
+        # 1) Create any subdirs in dst
+        for d in dirs:
+            src_d = os.path.join(root, d)
+            dst_d = os.path.join(dest_root, d)
+            if os.path.islink(src_d):
+                # Recreate symlink
+                if os.path.lexists(dst_d):
+                    os.remove(dst_d)
+                target = os.readlink(src_d)
+                os.symlink(target, dst_d)
+                # Tell os.walk not to descend into the link
+                dirs.remove(d)
+            else:
+                os.makedirs(dst_d, exist_ok=True)
+                # Copy over directory metadata
+                shutil.copystat(src_d, dst_d, follow_symlinks=False)
+
+        # 2) Copy/update files
+        for f in files:
+            src_f = os.path.join(root, f)
+            dst_f = os.path.join(dest_root, f)
+
+            if os.path.islink(src_f):
+                # Handle symlink
+                if os.path.lexists(dst_f):
+                    os.remove(dst_f)
+                target = os.readlink(src_f)
+                os.symlink(target, dst_f)
+            else:
+                # Only copy if missing or contents differ
+                if not os.path.exists(dst_f) or not filecmp.cmp(src_f, dst_f, shallow=False):
+                    shutil.copy2(src_f, dst_f)  # copy2 preserves mode + timestamps
+
+    # (Optional) Cleanup: remove files/dirs in dst that no longer exist in src
+    # You can walk dst similarly and compare against src to delete extras.
+
 def copy_prebuilt_directory(source_dir, lib_name=None, exclude_terms=None, dest_dir=None):
 	if dest_dir == None:
 		dest_dir = get_library_root_dir(lib_name)
@@ -507,11 +559,7 @@ def copy_prebuilt_directory(source_dir, lib_name=None, exclude_terms=None, dest_
 		if result.returncode >= 8:
 			raise RuntimeError(f"Robocopy failed: {result.returncode}")
 	else:
-		subprocess.run([
-			"rsync", "-a", "--links",
-			f"{source_dir.rstrip(os.sep)}/",
-			f"{dest_dir.rstrip(os.sep)}/",
-		], check=True)
+		sync_dirs(f"{source_dir.rstrip(os.sep)}/", f"{dest_dir.rstrip(os.sep)}/")
 
 def get_staging_dir():
 	global config
