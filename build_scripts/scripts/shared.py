@@ -9,6 +9,7 @@ import urllib.request
 import zipfile
 import shlex
 import fnmatch
+import filecmp
 import multiprocessing
 from pathlib import Path
 from urllib.parse import urlparse
