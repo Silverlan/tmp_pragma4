@@ -120,7 +120,7 @@ def cmake_configure(scriptPath,generator,toolsetArgs=None,additionalArgs=[],cfla
 		raise
 
 def cmake_build(buildConfig,targets=None):
-	args = ["cmake","--build",".","--config",buildConfig]
+	args = ["cmake","--build",".","--config",buildConfig,"VERBOSE=1"]
 	if targets:
 		args.append("--target")
 		args += targets
